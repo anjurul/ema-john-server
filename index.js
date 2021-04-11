@@ -1,36 +1,71 @@
-
 const express = require('express');
-const cors = require('cors');
 const bodyParser = require('body-parser');
-require('dotenv').config();
+const cors = require('cors');
 const MongoClient = require('mongodb').MongoClient;
 
-
-const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_USER}>@cluster0.j1rag.mongodb.net/emaShop?retryWrites=true&w=majority`;
+const uri = "mongodb+srv://ema-john-simple:Z8RW5xsetAPDj!s@cluster0.j1rag.mongodb.net/emaStore?retryWrites=true&w=majority";
 const port = 5000
 
-
 const app = express();
-app.use(cors);
-app.use(bodyParser.json);
+
+app.use(bodyParser.json());
+app.use(cors());
+
+
 
 
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
 client.connect(err => {
-  const products = client.db("emaShop").collection("product");
+  const collection = client.db("emaStore").collection("products");
+  const orderCollection = client.db("emaStore").collection("order");
 
-  
-    app.post('/addProduct', (req, res) => {
-        res.send('Hello ema-john!')
+  app.post('/addProducts', (req, res) => {
+    const products = req.body;
+    collection.insertOne(products)
+    .then(result => {
+      console.log(result.insertedCount);
+      res.send(result.insertedCount[0])
     })
+  })
 
+  app.get('/products', (req, res) => {
+    collection.find({})
+    .toArray((err, documents) => {
+      res.send(documents);
+    })
+    
+  })
+
+  app.get('/product/:key', (req, res) => {
+    collection.find({key: req.params.key})
+    .toArray((err, documents) => {
+      res.send(documents[0]);
+    })
+    
+  })
+
+  app.post('/productsByKeys', (req, res) => {
+    const productKeys = req.body;
+    collection.find({key: { $in: productKeys}})
+    .toArray((err, documents) => {
+      res.send(documents);
+    })
+  })
+
+  app.post('/addOrder', (req, res) => {
+    const order = req.body;
+    orderCollection.insertOne(order)
+    .then(result => {
+      console.log(result.insertedCount);
+      res.send(result.insertedCount > 0)
+    })
+  })
   console.log('database connected');
 });
 
 
-app.get('/', (req, res) => {
-    res.send('Hello ema-john!')
-})
+
+
 app.listen(port, () => {
-  console.log(`Example app listening at http://localhost:${port}`)
+  console.log(`server listening at http://localhost:${port}`)
 })
